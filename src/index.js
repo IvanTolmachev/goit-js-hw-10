@@ -23,40 +23,35 @@ function onCreate() {
   valuePromise = fetchCountries(value);
   valuePromise
     .then(countries => {
+      if (countries.status === 404) {
+        throw new Error(countries.status);
+      }
       if (countries.length === 1) {
-        return countries.map(country => createMarkupCountry(country));
+        let countryEl = countries.map(country => createMarkupCountry(country));
+        return (refs.countyEl.innerHTML = countryEl);
       }
       if (countries.length <= 10) {
-        return countries.reduce(
+        let allCountries = countries.reduce(
           (markup, country) => createListMarkupCountries(country) + markup,
           ''
         );
+        return (refs.listCountries.innerHTML = allCountries);
       }
-      throw Notify.info(
-        'Too many matches found. Please enter a more specific name.'
-      );
+      Notify.info('Too many matches found. Please enter a more specific name.');
+      onClear();
     })
-    .then(onMarkupCountry)
     .catch(onError);
   refs.inputEl.style.outlineColor = 'green';
 }
 
-function onMarkupCountry(markup) {
-  valuePromise
-    .then(countries => {
-      if (countries.length === 1) {
-        refs.countyEl.innerHTML = markup;
-        refs.listCountries.innerHTML = '';
-      }
-      refs.listCountries.innerHTML = markup;
-      refs.countyEl.innerHTML = '';
-    })
-    .catch(onError);
+function onClear() {
+  refs.countyEl.innerHTML = '';
+  refs.listCountries.innerHTML = '';
 }
 
 function onError() {
   console.error('countries not found');
   Notify.failure('Oops, there is no country with that name');
-  onMarkupCountry('<p class="country-error">countries not found</p>');
+  onClear();
   refs.inputEl.style.outlineColor = 'red';
 }
