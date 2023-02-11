@@ -1,7 +1,11 @@
 import './css/styles.css';
+import debounce from 'lodash.debounce';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import fetchCountries from './js/fetchCountries';
-import debounce from 'lodash.debounce';
+import {
+  createListMarkupCountries,
+  createMarkupCountry,
+} from './js/markup-country';
 
 let valuePromise = {};
 const DEBOUNCE_DELAY = 300;
@@ -15,25 +19,26 @@ inputEl.addEventListener('input', debounce(onCreate, DEBOUNCE_DELAY));
 function onCreate() {
   const value = inputEl.value.trim();
   valuePromise = fetchCountries(value);
-  if (value.length === 1) {
+  if (value.length <= 1) {
     Notify.info('Too many matches found. Please enter a more specific name.');
     return;
   }
   valuePromise
     .then(countries => {
       if (countries.length === 1) {
-        return countries.reduce(
-          (markup, country) => createMarkupCountry(country) + markup,
-          ''
-        );
+        return countries.map(country => createMarkupCountry(country));
       }
-      return countries.map(country => createMarkupListCountries(country));
+      return countries.reduce(
+        (markup, country) => createListMarkupCountries(country) + markup,
+        ''
+      );
     })
-    .then(updateCountry)
+    .then(markupCountry)
     .catch(onError);
+  inputEl.style.outlineColor = 'green';
 }
 
-function updateCountry(markup) {
+function markupCountry(markup) {
   valuePromise
     .then(countries => {
       if (countries.length > 1 && countries.length <= 10) {
@@ -47,27 +52,9 @@ function updateCountry(markup) {
     .catch(onError);
 }
 
-function createMarkupListCountries({ flags, name }) {
-  return `
-  <li>
-    <img src=${flags.svg} class="country-img" width="30"/>
-    <h2 class="country-title">${name.common}</h2>
-  </li>
-  `;
-}
-
-function createMarkupCountry({ flags, capital, population, name, languages }) {
-  return `
-    <img src=${flags.svg} class="country-img" width="30"/>
-    <h2 class="country-title">${name.common}</h2>
-    <p><span>Capital: <span>${capital}</p>
-    <p><span>Population: <span>${population}</p>
-    <p><span>Languages: <span>${Object.values(languages)}</p>
-
-  `;
-}
-
 function onError() {
   console.error('countries not found');
-  updateCountry('<p>countries not found</p>');
+  Notify.failure('Oops, there is no country with that name');
+  markupCountry('<p class="country-error">countries not found</p>');
+  inputEl.style.outlineColor = 'red';
 }
