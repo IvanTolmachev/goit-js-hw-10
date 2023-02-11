@@ -3,50 +3,48 @@ import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import fetchCountries from './js/fetchCountries';
 import debounce from 'lodash.debounce';
 
+let valuePromise = {};
 const DEBOUNCE_DELAY = 300;
+
 const inputEl = document.getElementById('search-box');
 const listCountries = document.querySelector('.country-list');
 const countyEl = document.querySelector('.country-info');
 
 inputEl.addEventListener('input', debounce(onCreate, DEBOUNCE_DELAY));
 
-// let valuePromise = fetchCountries(value).then(date => date);
-// console.log(valuePromise);
-
 function onCreate() {
-  let value = inputEl.value.trim();
+  const value = inputEl.value.trim();
+  valuePromise = fetchCountries(value);
   if (value.length === 1) {
     Notify.info('Too many matches found. Please enter a more specific name.');
     return;
   }
-  fetchCountries(value)
+  valuePromise
     .then(countries => {
       if (countries.length === 1) {
         return countries.reduce(
           (markup, country) => createMarkupCountry(country) + markup,
           ''
         );
+      }
+      return countries.map(country => createMarkupListCountries(country));
+    })
+    .then(updateCountry)
+    .catch(onError);
+}
+
+function updateCountry(markup) {
+  valuePromise
+    .then(countries => {
+      if (countries.length > 1 && countries.length <= 10) {
+        listCountries.innerHTML = markup;
+        countyEl.innerHTML = '';
       } else {
-        return countries.reduce(
-          (markup, country) => createMarkupListCountries(country) + markup,
-          ''
-        );
+        countyEl.innerHTML = markup;
+        listCountries.innerHTML = '';
       }
     })
-    .then(updateNewsList)
-
     .catch(onError);
-  // .then(updateNewCountry);
-}
-
-function updateNewsList(markup) {
-  // if (countries.length > 1 && countries.length <= 10) {
-  listCountries.innerHTML = markup;
-  // }
-}
-
-function updateNewCountry(markup) {
-  countyEl.innerHTML = markup;
 }
 
 function createMarkupListCountries({ flags, name }) {
@@ -69,7 +67,7 @@ function createMarkupCountry({ flags, capital, population, name, languages }) {
   `;
 }
 
-function onError(err) {
-  console.error(err);
-  updateNewsList('<p>countries not found</p>');
+function onError() {
+  console.error('countries not found');
+  updateCountry('<p>countries not found</p>');
 }
