@@ -47,6 +47,7 @@ img {
 .countries-item {
   display: flex;
   align-items: center;
+  border-bottom: 1px solid green;
 }
 
 .countries-img {
