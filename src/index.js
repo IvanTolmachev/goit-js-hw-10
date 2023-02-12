@@ -13,15 +13,16 @@ const refs = {
   countyEl: document.querySelector('.country-info'),
 };
 
-let valuePromise = {};
 const DEBOUNCE_DELAY = 300;
 
 refs.inputEl.addEventListener('input', debounce(onCreate, DEBOUNCE_DELAY));
 
 function onCreate() {
-  const value = refs.inputEl.value.trim();
-  valuePromise = fetchCountries(value);
-  valuePromise
+  let value = refs.inputEl.value.trim();
+  if (!value) {
+    return;
+  }
+  fetchCountries(value)
     .then(countries => {
       if (countries.status === 404) {
         throw new Error(countries.status);
